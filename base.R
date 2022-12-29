@@ -125,10 +125,48 @@ plot(nb_list, lty=1, lwd= 10); plot(nb_list2, lty=1, lwd= 10)
 plot(c(max(nb_list),max(nb_list2)), lty=1, lwd=10)
 
 #Support Vector Machine
-svm <- train(Pos ~ ., data=trainingSet, method="svmRadial", metric= "ROC",trControl= fitControl,  tuneLength=20)
+svm <- train(Pos ~ ., data=trainingSet, method="svmRadial", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_1,  tuneLength=10)
+svm2 <- train(Pos ~ ., data=trainingSet, method="svmRadial", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_2,  tuneLength=10)
+svm3 <- train(Pos ~ ., data=trainingSet, method="svmLinear", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_1,  tuneLength=10)
+svm4 <- train(Pos ~ ., data=trainingSet, method="svmLinear", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_2,  tuneLength=10)
+svm5 <- train(Pos ~ ., data=trainingSet, method="svmLinear", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_1,  tuneGrid = expand.grid(C = seq(0, 2, length = 20)))
+svm6 <- train(Pos ~ ., data=trainingSet, method="svmLinear", metric= "Accuracy",preProcess = c("center","scale"), trControl= fitControl_2,  tuneGrid = expand.grid(C = seq(0, 2, length = 20)))
+svm7 <- train(Pos ~., data = trainingSet, method = "svmPoly",metric="Accuracy", preProcess = c("center","scale"),trControl= fitControl_1, tuneLength = 4)
+svm8 <- train(Pos ~., data = trainingSet, method = "svmPoly",metric="Accuracy", preProcess = c("center","scale"),trControl= fitControl_1, tuneLength = 4)
+
+svm$resample; print(svm); svm2$resample; print(svm2)
+svm3$resample; print(svm3); svm4$resample; print(svm4); svm5$resample; print(svm5); svm6$resample; print(svm6)
+svm7$resample; print(svm7); svm8$resample; print(svm8)
+
+
+#APLICAR ESTO A TODO PARA UNA MEJOR COMPARACIÓN DE RESULTADOS
+res1<-as_tibble(svm$results[which.min(svm$results[,2]),]); res2<-as_tibble(svm2$results[which.min(svm2$results[,2]),])
+res3<-as_tibble(svm3$results[which.min(svm3$results[,2]),]); res4<-as_tibble(svm4$results[which.min(svm4$results[,2]),]); res5<-as_tibble(svm5$results[which.min(svm5$results[,2]),]); res6<-as_tibble(svm6$results[which.min(svm6$results[,2]),])
+res7<-as_tibble(svm7$results[which.min(svm7$results[,2]),]); res8<-as_tibble(svm8$results[which.min(svm8$results[,2]),])
+
+
+df_SVM<-tibble(Model=c('SVM Radial CV',"SVM Radial RCV","SVM Linear CV",'SVM Linear RCV','SVM Linear w/ choice of cost CV','SVM Linear w/ choice of cost RCV','SVM Poly CV','SVM Poly RCV'),Accuracy=c(res1$Accuracy,res2$Accuracy,res3$Accuracy,res4$Accuracy,res5$Accuracy,res6$Accuracy,res7$Accuracy,res8$Accuracy))
+df_SVM %>% arrange(Accuracy)
 
 #GBM
-gbm <- train(Pos ~ .,data=trainingSet, method="gbm",metric="ROC",trControl= fitControl)
+gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60), 
+                        n.trees = (1:30)*50, 
+                        shrinkage = 0.1,
+                        n.minobsinnode = 20)
+
+gbm <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_1)
+gbm2 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_2)
+gbm3 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_1, tuneGrid= gbmGrid)
+gbm4 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_2, tuneGrid= gbmGrid)
+
+gbm$resample; print(gbm); gbm2$resample; print(gbm2)
+gbm3$resample; print(gbm3); gbm4$resample; print(gbm4)
+
+res_gb1<-as_tibble(gbm$results[which.min(gbm$results[,2]),]); res_gb2<-as_tibble(svm2$results[which.min(svm2$results[,2]),])
+res_gb3<-as_tibble(svm3$results[which.min(svm3$results[,2]),]); res_gb4<-as_tibble(svm4$results[which.min(svm4$results[,2]),]);
+
+df_GBM<-tibble(Model=c('GBM CV','GBM RCV', 'GBM Manual Parameters CV', "GBM Manual Parameters RCV"),Accuracy=c(res_gb1$Accuracy,res2_gb2$Accuracy,res_gb3$Accuracy,res_gb4$Accuracy))
+df_GBM %>% arrange(Accuracy)
 
 #KNN
 knn <- train(x, y, method = "knn", metric= "Accuracy", preProcess = c("center","scale"), trControl = fitControl_1, tuneLength = 20)
