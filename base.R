@@ -48,9 +48,10 @@ x<-trainingSet[,-1]
 sapply(x, function(x) sum(is.na(x)))
 
 #TrainControl
-fitControl_1 <- trainControl(method="cv",number=10, savePredictions="final",search= "random", allowParallel= TRUE)
-fitControl_2 <- trainControl(method="repeatedcv",number=10, repeats=10, search= "random", savePredictions="final", allowParallel= TRUE)
-
+fitControl_1 <- trainControl(method="cv",number=10, savePredictions="final",search="random", allowParallel= TRUE)
+fitControl_2 <- trainControl(method="repeatedcv",number=10, repeats=10,search = "random", savePredictions="final", allowParallel= TRUE)
+fitControl_gbm1 <- trainControl(method="cv",number=10, savePredictions="final", allowParallel= TRUE)
+fitControl_gbm2 <- trainControl(method="repeatedcv",number=10, repeats=3, savePredictions="final", allowParallel= TRUE)
 
 #Training
 #Random forest
@@ -71,6 +72,11 @@ rf_b$resample; print(rf_b)
 rf_b1$resample; print(rf_b1)
 rf_b2$resample; print(rf_b2)
 
+res_b1<-as_tibble(rf_b$results[which.min(rf_b$results[,2]),]); res_b2<-as_tibble(rf_b1$results[which.min(rf_b1$results[,2]),])
+res_b3<-as_tibble(rf_b2$results[which.min(rf_b2$results[,2]),]); 
+
+df_rfb<-tibble(Model=c('RF 1000 Trees','RF 1000 Trees CV', "RF 1000 Trees RCV"),Accuracy=c(res_b1$Accuracy,res_b2$Accuracy,res_b3$Accuracy))
+df_rfb %>% arrange(Accuracy)
 
 bAccuracy <- rf_b$results$Accuracy; b1Accuracy <- rf_b1$results$Accuracy; b2Accuracy <- rf_b2$results$Accuracy
 b_accuracy_list <- c(bAccuracy, b1Accuracy, b2Accuracy)
@@ -85,13 +91,18 @@ rf_c$resample; print(rf_c)
 rf_c1$resample; print(rf_c1)
 rf_c2$resample; print(rf_c2)
 
+res_c1<-as_tibble(rf_c$results[which.min(rf_c$results[,2]),]); res_c2<-as_tibble(rf_c1$results[which.min(rf_c1$results[,2]),])
+res_c3<-as_tibble(rf_c2$results[which.min(rf_c2$results[,2]),]); 
+
+df_rfc <- tibble(Model=c('RF 1500 Trees','RF 1500 Trees CV', "RF 1500 Trees RCV"),Accuracy=c(res_c1$Accuracy,res_c2$Accuracy,res_c3$Accuracy))
+df_rfc %>% arrange(Accuracy)
+
 cAccuracy <- rf_c$results$Accuracy; c1Accuracy <- rf_c1$results$Accuracy; c2Accuracy <- rf_c2$results$Accuracy
 c_accuracy_list <- c(cAccuracy, c1Accuracy, c2Accuracy)
 mean_c <- mean(c_accuracy_list)
 plot(c_accuracy_list, lty=1, lwd=10)
 -----------------------------------------------------------------------------------------------------------------------------------------------------
   
-
 rf_d <- train(x, y, method="rf", data= data, metric="Accuracy", ntree=2000, tuneGrid = grid2000) #0.7801005
 rf_d1 <- train(x, y, method="rf", data= data, metric="Accuracy", ntree=2000, trControl= fitControl_1, tuneGrid = grid2000) #0.789384
 rf_d2 <- train(x, y, method="rf", data= data, metric="Accuracy", ntree=2000, trControl= fitControl_2, tuneGrid = grid2000)#0.7868483
@@ -99,6 +110,12 @@ rf_d2 <- train(x, y, method="rf", data= data, metric="Accuracy", ntree=2000, trC
 rf_d$resample; print(rf_d)
 rf_d1$resample; print(rf_d1)
 rf_d2$resample; print(rf_d2)
+
+res_d1<-as_tibble(rf_d$results[which.min(rf_d$results[,2]),]); res_d2<-as_tibble(rf_d1$results[which.min(rf_d1$results[,2]),])
+res_d3<-as_tibble(rf_d2$results[which.min(rf_d2$results[,2]),]); 
+
+df_rfd <- tibble(Model=c('RF 2000 Trees','RF 2000 Trees CV', "RF 2000 Trees RCV"),Accuracy=c(res_d1$Accuracy,res_d2$Accuracy,res_d3$Accuracy))
+df_rfd %>% arrange(Accuracy)
 
 dAccuracy <- rf_d$results$Accuracy; d1Accuracy <- rf_d1$results$Accuracy; d2Accuracy <- rf_d2$results$Accuracy
 d_accuracy_list <- c(dAccuracy, d1Accuracy, d2Accuracy)
@@ -119,6 +136,11 @@ nb$resample;print(nb)
 nb2$resample;print(nb2)
 plot(nb)
 plot(nb2)
+
+res_nb1<-as_tibble(rf_nb$results[which.min(rf_nb$results[,2]),]); res_nb2<-as_tibble(rf_nb2$results[which.min(rf_nb2$results[,2]),])
+
+df_rfnb<-tibble(Model=c('Naive Bayes CV','Naive Bayes RCV'),Accuracy=c(res_nb1$Accuracy,res_nb2$Accuracy))
+df_rfnb %>% arrange(Accuracy)
 
 nb_list <- c(nb$results$Accuracy);nb_list2 <- c(nb2$results$Accuracy)
 plot(nb_list, lty=1, lwd= 10); plot(nb_list2, lty=1, lwd= 10)
@@ -149,29 +171,34 @@ df_SVM<-tibble(Model=c('SVM Radial CV',"SVM Radial RCV","SVM Linear CV",'SVM Lin
 df_SVM %>% arrange(Accuracy)
 
 #GBM
-gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60), 
-                        n.trees = (1:30)*50, 
+gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9, 12, 15), 
+                        n.trees = 150, 
                         shrinkage = 0.1,
                         n.minobsinnode = 20)
 
-gbm <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_1)
-gbm2 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_2)
-gbm3 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_1, tuneGrid= gbmGrid)
-gbm4 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_2, tuneGrid= gbmGrid)
+gbm <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_gbm1)
+gbm2 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_gbm2)
+
+#gbm3 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_gbm1, tuneGrid= gbmGrid)
+#gbm4 <- train(Pos ~ .,data=trainingSet, method="gbm",metric="Accuracy",trControl= fitControl_gbm2, tuneGrid= gbmGrid)
 
 gbm$resample; print(gbm); gbm2$resample; print(gbm2)
-gbm3$resample; print(gbm3); gbm4$resample; print(gbm4)
+ggplot(gbm); ggplot(gbm2)
 
-res_gb1<-as_tibble(gbm$results[which.min(gbm$results[,2]),]); res_gb2<-as_tibble(svm2$results[which.min(svm2$results[,2]),])
-res_gb3<-as_tibble(svm3$results[which.min(svm3$results[,2]),]); res_gb4<-as_tibble(svm4$results[which.min(svm4$results[,2]),]);
+res_gb1<-as_tibble(gbm$results[which.min(gbm$results[,2]),]); res_gb2<-as_tibble(gbm2$results[which.min(gbm2$results[,2]),])
 
-df_GBM<-tibble(Model=c('GBM CV','GBM RCV', 'GBM Manual Parameters CV', "GBM Manual Parameters RCV"),Accuracy=c(res_gb1$Accuracy,res2_gb2$Accuracy,res_gb3$Accuracy,res_gb4$Accuracy))
+df_GBM<-tibble(Model=c('GBM CV','GBM RCV'),Accuracy=c(res_gb1$Accuracy,res_gb2$Accuracy))
 df_GBM %>% arrange(Accuracy)
 
 #KNN
 knn <- train(x, y, method = "knn", metric= "Accuracy", preProcess = c("center","scale"), trControl = fitControl_1, tuneLength = 20)
 knn2 <- train(x, y, method = "knn", metric= "Accuracy", preProcess = c("center","scale"), trControl = fitControl_2, tuneLength = 20)
 plot(knn); plot(knn2)
+
+res_knn1<-as_tibble(knn$results[which.min(knn$results[,2]),]); res_knn2<-as_tibble(knn2$results[which.min(knn2$results[,2]),])
+
+df_knn<-tibble(Model=c('KNN CV','KNN RCV'),Accuracy=c(res_knn1$Accuracy,res_knn2$Accuracy))
+df_knn %>% arrange(Accuracy)
 
 knn_list <- c(knn$results$Accuracy)
 knn_list2 <- c(knn2$results$Accuracy)
@@ -180,13 +207,18 @@ plot(c(max(knn_list),max(knn_list2)), lty=1, lwd=10)
 
 
 #RPART
-tree <- train(Pos ~ .,data=trainingSet, method="rpart2",metric="ROC",trControl= fitControl, tuneLength = 100)
+tree <- train(Pos ~ .,data=trainingSet, method="rpart2",metric="Accuracy",trControl= fitControl_1, tuneLength = 100)
+tree2 <- train(Pos ~ .,data=trainingSet, method="rpart2",metric="Accuracy",trControl= fitControl_2, tuneLength = 100)
+plot(tree); plot(tree2);
 
+tree$resample; print(tree);
+tree2$resample; print(tree2);
 
-svm$resample
-gbm$resample
-knn$resample
-tree$resample
+res_tree1<-as_tibble(tree$results[which.max(tree$results[,2]),]); res_tree2<-as_tibble(tree2$results[which.max(tree2$results[,2]),])
+
+df_rpart<-tibble(Model=c('RPART CV','RPART RCV'),Accuracy=c(res_tree1$Accuracy,res_tree2$Accuracy))
+df_rpart %>% arrange(Accuracy)
+
 
 #Variable importance
 varimp_RF <- varImp(rf); varimp_RF
@@ -201,7 +233,13 @@ plot(varimp_tree, main = "Variables más importantes")
 
 
 #Confusion Matrix
-confusionMatrix.train(rf)
+confusionMatrix.train(rf);
+confusionMatrix.train(nb);
+confusionMatrix.train(svm);
+confusionMatrix.train(gbm);
+confusionMatrix.train(knn);
+confusionMatrix.train(tree);
+
 
 #Prediction
 fitted <- predict(rf_b1, testSet)
